@@ -1,12 +1,20 @@
 # .humancov
-# file              origin   reviewed   tested   generator     confidence
-bench/perf.js     ai       false      false    claude-code   -         
-bin/humancov.js   ai       false      false    claude-code   -         
-src/badge.js      ai       true       true     claude-code   -         
-src/comments.js   ai       false      false    claude-code   -         
-src/ignore.js     ai       false      false    claude-code   -         
-src/init.js       ai       false      true     claude-code   -         
-src/manifest.js   ai       false      false    claude-code   -         
-src/parser.js     ai       false      false    claude-code   -         
-src/report.js     ai       true       true     claude-code   -         
-src/scanner.js    ai       false      true     claude-code   -         
+# file                    origin   reviewed   tested   generator     confidence
+bench/perf.js           ai       false      false    claude-code   -         
+bin/humancov.js         ai       true       true     claude-code   -         
+src/badge.js            ai       true       true     claude-code   -         
+src/comments.js         ai       false      false    claude-code   -         
+src/ignore.js           ai       false      true     claude-code   -         
+src/init.js             ai       false      false    claude-code   -         
+src/manifest.js         ai       false      false    claude-code   -         
+src/parser.js           ai       false      false    claude-code   -         
+src/report.js           ai       true       true     claude-code   -         
+src/scanner.js          ai       false      true     claude-code   -         
+test/badge.test.js      ai       false      false    claude-code   -         
+test/cli.test.js        ai       false      false    claude-code   -         
+test/comments.test.js   ai       false      false    claude-code   -         
+test/ignore.test.js     ai       false      false    claude-code   -         
+test/manifest.test.js   ai       false      false    claude-code   -         
+test/parser.test.js     ai       false      false    claude-code   -         
+test/report.test.js     ai       false      false    claude-code   -         
+test/scanner.test.js    ai       false      false    claude-code   -         
