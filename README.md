@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/badge/license-CC0--1.0-brightgreen)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![node](https://img.shields.io/node/v/humancov)](https://nodejs.org/)
 [![GitHub](https://img.shields.io/github/stars/enixCode/humancov?style=social)](https://github.com/enixCode/humancov)
-![Human Reviewed](https://img.shields.io/badge/human--reviewed-0%25%20of%20AI%20files-red)
+![Human Reviewed](https://img.shields.io/badge/human--reviewed-17%25%20of%20AI%20files-red)
 
 A lightweight CLI that tracks AI-generated vs human-written code in your repo.
 
