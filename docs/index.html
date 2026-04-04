@@ -775,17 +775,16 @@ Of AI files:
 
 <script>
 // Fetch latest version from GitHub
-fetch('https://api.github.com/repos/enixcode/humancov/releases/latest')
+fetch('https://registry.npmjs.org/humancov/latest')
   .then(r => r.ok ? r.json() : Promise.reject())
-  .then(d => document.getElementById('version').textContent = d.tag_name)
+  .then(d => document.getElementById('version').textContent = 'v' + d.version)
   .catch(() => {
     fetch('https://api.github.com/repos/enixcode/humancov/tags')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(tags => {
         if (tags.length) document.getElementById('version').textContent = tags[0].name;
-        else document.getElementById('version').textContent = 'v1.0.0';
       })
-      .catch(() => document.getElementById('version').textContent = 'v1.0.0');
+      .catch(() => {});
   });
 
 // Random tagline - one per visit
