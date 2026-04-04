@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>humancov - Track AI vs Human Code</title>
+<meta name="description" content="A lightweight CLI that tracks AI-generated vs human-written code in your repo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0a0a0c;
+  --surface:#111116;
+  --surface2:#19191f;
+  --border:#2a2a35;
+  --text:#e2e0d8;
+  --text-dim:#7a7872;
+  --human:#e8a44a;
+  --human-glow:#e8a44a33;
+  --ai:#5b8def;
+  --ai-glow:#5b8def33;
+  --accent:#c4f06e;
+  --accent-dim:#c4f06e22;
+  --red:#e05252;
+  --yellow:#e8c44a;
+  --green:#4ecf73;
+  --brightgreen:#2ee87a;
+  --mono:'JetBrains Mono',monospace;
+  --serif:'Instrument Serif',Georgia,serif;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:15px;
+  line-height:1.7;
+  overflow-x:hidden;
+}
+
+::selection{background:var(--accent);color:var(--bg)}
+
+/* --- GRAIN OVERLAY --- */
+body::before{
+  content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
+  opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* --- LAYOUT --- */
+.container{max-width:920px;margin:0 auto;padding:0 24px}
+
+/* --- HERO --- */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  position:relative;
+  padding:80px 0 120px;
+}
+.hero::after{
+  content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:1px;height:120px;
+  background:linear-gradient(to bottom,var(--border),transparent);
+}
+
+.badge-row{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:48px;
+  animation:fadeUp .8s ease both;
+}
+.badge-row .tag{
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent);
+  border:1px solid var(--accent-dim);
+  padding:4px 10px;border-radius:3px;
+}
+.badge-row .ver{font-size:12px;color:var(--text-dim)}
+
+.hero h1{
+  font-family:var(--serif);
+  font-weight:400;font-style:italic;
+  font-size:clamp(3rem,8vw,6.5rem);
+  line-height:1.05;
+  letter-spacing:-.02em;
+  margin-bottom:32px;
+  animation:fadeUp .8s .1s ease both;
+}
+.hero h1 span.human{color:var(--human)}
+.hero h1 span.ai{color:var(--ai)}
+
+.hero .subtitle{
+  font-size:16px;color:var(--text-dim);
+  max-width:520px;line-height:1.8;
+  animation:fadeUp .8s .2s ease both;
+}
+
+.hero-actions{
+  display:flex;gap:12px;margin-top:40px;flex-wrap:wrap;
+  animation:fadeUp .8s .3s ease both;
+}
+.hero-actions a{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 24px;border-radius:4px;
+  font-family:var(--mono);font-size:13px;font-weight:500;
+  text-decoration:none;transition:all .2s;
+}
+.btn-primary{
+  background:var(--accent);color:var(--bg);
+}
+.btn-primary:hover{box-shadow:0 0 30px var(--accent-dim),0 4px 20px rgba(0,0,0,.4)}
+.btn-ghost{
+  border:1px solid var(--border);color:var(--text);
+}
+.btn-ghost:hover{border-color:var(--text-dim);background:var(--surface)}
+
+/* --- SECTIONS --- */
+section{padding:100px 0;position:relative}
+section+section::before{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:min(100%,600px);height:1px;
+  background:linear-gradient(90deg,transparent,var(--border),transparent);
+}
+
+.section-label{
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:16px;
+}
+.section-title{
+  font-family:var(--serif);font-style:italic;font-weight:400;
+  font-size:clamp(2rem,4vw,3rem);
+  margin-bottom:48px;
+}
+
+/* --- TERMINAL --- */
+.terminal{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  margin:32px 0;
+}
+.terminal-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 16px;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
+}
+.terminal-dot{width:10px;height:10px;border-radius:50%;background:var(--border)}
+.terminal-bar span{font-size:12px;color:var(--text-dim);margin-left:8px}
+.terminal-body{padding:20px 24px;overflow-x:auto}
+.terminal-body pre{
+  font-family:var(--mono);font-size:13px;line-height:1.8;
+  color:var(--text-dim);white-space:pre;
+}
+.terminal-body .cmd{color:var(--accent)}
+.terminal-body .prompt{color:var(--text-dim);opacity:.5}
+.terminal-body .val{color:var(--text)}
+.terminal-body .hl-human{color:var(--human)}
+.terminal-body .hl-ai{color:var(--ai)}
+.terminal-body .hl-green{color:var(--green)}
+.terminal-body .hl-red{color:var(--red)}
+.terminal-body .hl-dim{color:var(--text-dim)}
+
+/* --- INSTALL --- */
+.install-box{
+  display:flex;align-items:center;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:16px 20px;
+  gap:12px;
+  max-width:420px;
+  cursor:pointer;
+  transition:border-color .2s;
+}
+.install-box:hover{border-color:var(--accent)}
+.install-box code{font-size:14px;color:var(--accent);flex:1}
+.install-box .copy-hint{font-size:11px;color:var(--text-dim);white-space:nowrap}
+
+/* --- HOW IT WORKS --- */
+.flow{display:flex;flex-direction:column;gap:0;position:relative}
+.flow-step{
+  display:grid;grid-template-columns:48px 1fr;gap:24px;
+  padding:24px 0;
+  position:relative;
+}
+.flow-step::before{
+  content:'';position:absolute;left:23px;top:0;bottom:0;width:1px;
+  background:var(--border);
+}
+.flow-step:first-child::before{top:50%}
+.flow-step:last-child::before{bottom:50%}
+
+.flow-num{
+  width:48px;height:48px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;
+  font-size:14px;font-weight:700;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--accent);
+  position:relative;z-index:1;
+}
+.flow-content h3{font-size:15px;margin-bottom:6px;font-weight:500}
+.flow-content p{font-size:13px;color:var(--text-dim);line-height:1.7}
+.flow-content strong{color:var(--text);font-weight:500}
+.flow-content code{
+  background:var(--surface2);
+  padding:2px 7px;border-radius:3px;
+  font-size:12px;color:var(--accent);
+}
+
+/* --- INLINE TERMINAL (compact, inside flow steps) --- */
+.inline-terminal{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:12px 16px;
+  margin-top:12px;
+  font-size:13px;
+  display:flex;align-items:center;gap:8px;
+  cursor:pointer;
+  transition:border-color .2s,box-shadow .2s;
+  position:relative;
+  overflow:hidden;
+}
+.inline-terminal:hover{
+  border-color:var(--accent);
+  box-shadow:0 0 20px var(--accent-dim);
+}
+.inline-terminal .it-prompt{color:var(--text-dim);opacity:.5;user-select:none}
+.inline-terminal .it-cmd{color:var(--accent);flex:1}
+.inline-terminal .it-copy{
+  font-size:10px;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:.06em;
+  white-space:nowrap;
+  transition:color .2s;
+}
+.inline-terminal:hover .it-copy{color:var(--accent)}
+.inline-terminal .it-cursor{
+  display:inline-block;width:8px;height:16px;
+  background:var(--accent);opacity:.7;
+  animation:blink 1s step-end infinite;
+  vertical-align:middle;margin-left:2px;
+}
+.inline-terminal--multi{flex-direction:row;align-items:flex-start}
+.inline-terminal--multi .it-lines{flex:1;display:flex;flex-direction:column;gap:2px}
+.inline-terminal--multi .it-copy{align-self:flex-start;margin-top:2px}
+@keyframes blink{0%,100%{opacity:.7}50%{opacity:0}}
+
+/* --- HEADER KEYS TABLE --- */
+.keys-table{width:100%;border-collapse:collapse;font-size:13px}
+.keys-table th{
+  text-align:left;padding:12px 16px;
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-dim);font-weight:500;
+  border-bottom:1px solid var(--border);
+}
+.keys-table td{
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
+.keys-table tr:last-child td{border-bottom:none}
+.keys-table code{
+  background:var(--surface2);
+  padding:2px 7px;border-radius:3px;
+  font-size:12px;color:var(--accent);
+}
+.keys-table .req{
+  display:inline-block;font-size:10px;
+  padding:2px 6px;border-radius:2px;
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.req-yes{background:var(--accent-dim);color:var(--accent)}
+.req-no{background:var(--surface2);color:var(--text-dim)}
+
+/* --- BADGE PREVIEW --- */
+.badge-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;margin-top:32px;
+}
+.badge-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:24px;text-align:center;
+  transition:border-color .2s;
+  overflow:hidden;
+}
+.badge-card:hover{border-color:var(--text-dim)}
+.badge-card img{max-width:100%;height:auto}
+.badge-card .pct{font-size:28px;font-weight:700;margin-bottom:4px}
+.badge-card .label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em}
+.pct-red{color:var(--red)}
+.pct-yellow{color:var(--yellow)}
+.pct-green{color:var(--green)}
+.pct-bright{color:var(--brightgreen)}
+
+/* --- COMMENT STYLES --- */
+.lang-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:16px;
+}
+.lang-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:20px;
+}
+.lang-card .prefix{
+  font-size:18px;font-weight:700;color:var(--accent);
+  margin-bottom:8px;
+}
+.lang-card .langs{font-size:12px;color:var(--text-dim);line-height:1.8}
+
+/* --- AI TOOL CARDS --- */
+.tool-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+}
+.tool-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:16px 20px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.tool-card:hover{
+  border-color:var(--ai);
+  box-shadow:0 0 20px var(--ai-glow);
+}
+.tool-card{display:flex;align-items:center;gap:14px}
+.tool-icon{
+  width:36px;height:36px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:8px;background:var(--surface2);
+}
+.tool-icon svg{width:20px;height:20px}
+.tool-info{}
+.tool-info .tool-file{
+  font-size:13px;font-weight:600;color:var(--ai);
+  margin-bottom:2px;
+}
+.tool-info .tool-name{font-size:12px;color:var(--text-dim)}
+
+/* --- CI --- */
+.ci-block{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:24px;
+}
+.ci-block pre{font-size:13px;line-height:1.8;color:var(--text-dim);white-space:pre;overflow-x:auto}
+.ci-block .hl-key{color:var(--ai)}
+.ci-block .hl-str{color:var(--human)}
+.ci-block .hl-comment{color:var(--text-dim);opacity:.5}
+
+/* --- FOOTER --- */
+footer{
+  padding:60px 0;
+  text-align:center;
+  font-size:12px;color:var(--text-dim);
+}
+footer a{color:var(--text-dim);text-decoration:underline;text-underline-offset:3px}
+footer a:hover{color:var(--text)}
+
+/* --- ANIMATIONS --- */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* --- RESPONSIVE --- */
+@media(max-width:640px){
+  .container{padding:0 16px}
+  section{padding:60px 0}
+  .hero{padding:60px 0 80px;min-height:auto}
+  .hero::after{display:none}
+  .flow-step{grid-template-columns:36px 1fr;gap:16px}
+  .flow-num{width:36px;height:36px;font-size:12px}
+  .flow-step::before{left:17px}
+  .badge-grid{grid-template-columns:1fr 1fr}
+  .tool-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="container">
+    <div class="badge-row">
+      <span class="tag">open source</span>
+      <span class="ver" id="version">v-.-.-</span>
+    </div>
+    <h1><span class="human">human</span><span class="ai">cov</span></h1>
+    <p class="subtitle tagline" id="tagline"></p>
+    <div class="hero-actions">
+      <a href="#install" class="btn-primary">Get Started</a>
+      <a href="https://github.com/enixcode/humancov" class="btn-ghost">GitHub</a>
+    </div>
+  </div>
+</header>
+
+<!-- DEMO -->
+<section id="demo">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">See it in action</span>
+      <h2 class="section-title">One command. Full visibility.</h2>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span>terminal</span>
+      </div>
+      <div class="terminal-body">
+<pre><span class="prompt">$</span> <span class="cmd">humancov scan</span>
+
+<span class="val">AI-Provenance Scan</span>
+<span class="hl-dim">==================</span>
+Total files scanned:  <span class="val">42</span>
+AI-generated:         <span class="hl-ai">28</span>
+Human-written:        <span class="hl-human">10</span>
+Mixed:                <span class="val">2</span>
+Unknown (no header):  <span class="hl-dim">2</span>
+
+Of AI files:
+  Reviewed:  <span class="hl-green">21 / 28  (75%)</span>
+  Tested:    <span class="hl-red">8 / 28  (29%)</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">How it works</span>
+      <h2 class="section-title">Three steps. No config.</h2>
+    </div>
+    <div class="flow reveal">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <h3>Add provenance headers</h3>
+          <p>Add headers to the <strong>top of your files</strong>. Works with <strong>30+ languages</strong> automatically.</p>
+          <div class="inline-terminal inline-terminal--multi" onclick="copyCmd(this, '# AI-Provenance-Origin: ai\n# AI-Provenance-Reviewed: false')" title="Click to copy">
+            <div class="it-lines">
+              <div><span class="it-prompt">#</span> <span class="it-cmd">AI-Provenance-Origin: ai</span></div>
+              <div><span class="it-prompt">#</span> <span class="it-cmd">AI-Provenance-Reviewed: false</span></div>
+            </div>
+            <span class="it-copy">click to copy</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <h3>Scan your repo</h3>
+          <p>Run the command and get a <strong>full report</strong>. Binaries and ignored paths are <strong>skipped automatically</strong>.</p>
+          <div class="inline-terminal" onclick="copyCmd(this, 'humancov scan')" title="Click to copy">
+
+            <span class="it-prompt">$</span>
+            <span class="it-cmd">humancov scan<span class="it-cursor"></span></span>
+            <span class="it-copy">click to copy</span>
+          </div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <h3>Review and track</h3>
+          <p>Review AI code, set <code>Reviewed: true</code>. <strong>Everything updates automatically.</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI TOOL SETUP -->
+<section id="ai-setup">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">AI Tools</span>
+      <h2 class="section-title">Teach your AI to tag its code.</h2>
+    </div>
+    <div class="flow-content reveal" style="margin-bottom:32px">
+      <p>Run <code>humancov init</code> to detect your AI tool config files and inject provenance instructions automatically.</p>
+    </div>
+    <div class="tool-grid reveal">
+      <div class="tool-card">
+        <div class="tool-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4.709 15.955l4.397-2.553m0 0l3.26-1.893m-3.26 1.893V8.197m3.26 3.312l3.188 1.852m-3.188-1.852V6.09m3.188 5.459l4.396 2.553m-4.396-2.553V6.09m-6.448 2.107L4.709 5.59m6.897 2.607V5.59m0 0l3.188-1.852m.449 13.77V20.41l-3.637-2.112m3.637 2.112l3.637-2.112M8.657 17.508V20.41L12.294 22.523m-3.637-5.015L5.02 15.396m3.637 2.112l3.637 2.112m3.637-2.112l3.637-2.112" stroke="#e8a44a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="tool-info">
+          <div class="tool-file">CLAUDE.md</div>
+          <div class="tool-name">Claude Code</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="#7a7872" stroke-width="1.2"/><path d="M8 8h8M8 12h5M8 16h6" stroke="#7a7872" stroke-width="1.2" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="#5b8def" opacity=".8"/></svg>
+        </div>
+        <div class="tool-info">
+          <div class="tool-file">.cursorrules</div>
+          <div class="tool-name">Cursor</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L3 8v8l9 5 9-5V8l-9-5z" stroke="#4ecf73" stroke-width="1.2" stroke-linejoin="round"/><path d="M3 8l9 5m0 0l9-5m-9 5v9" stroke="#4ecf73" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="tool-info">
+          <div class="tool-file">.windsurfrules</div>
+          <div class="tool-name">Windsurf</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" fill="#7a7872"/></svg>
+        </div>
+        <div class="tool-info">
+          <div class="tool-file">copilot-instructions.md</div>
+          <div class="tool-name">GitHub Copilot</div>
+        </div>
+      </div>
+    </div>
+    <div class="terminal reveal" style="margin-top:24px">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span>terminal</span>
+      </div>
+      <div class="terminal-body">
+<pre><span class="prompt">$</span> <span class="cmd">humancov init</span>
+
+  <span class="hl-green">done</span>: CLAUDE.md <span class="hl-dim">(Claude Code instructions added)</span>
+  <span class="hl-green">done</span>: .cursorrules <span class="hl-dim">(Cursor instructions added)</span>
+  <span class="hl-dim">skip</span>: .windsurfrules <span class="hl-dim">(already has AI-Provenance instructions)</span>
+
+<span class="val">2 file(s) updated.</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Install</span>
+      <h2 class="section-title">Ready in seconds.</h2>
+    </div>
+    <div class="install-box reveal" onclick="copyInstall(this)" title="Click to copy">
+      <code>npm install -g humancov</code>
+      <span class="copy-hint">click to copy</span>
+    </div>
+    <p style="margin-top:16px;font-size:13px;color:var(--text-dim)" class="reveal">
+      Requires Node >= 18. Zero config. Single dependency.
+    </p>
+  </div>
+</section>
+
+<!-- HEADERS -->
+<section id="headers">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Spec</span>
+      <h2 class="section-title">Header keys.</h2>
+    </div>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="keys-table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Required</th>
+            <th>Values</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AI-Provenance-Origin</code></td>
+            <td><span class="req req-yes">yes</span></td>
+            <td><code>ai</code> <code>human</code> <code>mixed</code></td>
+            <td>Who wrote the file</td>
+          </tr>
+          <tr>
+            <td><code>AI-Provenance-Generator</code></td>
+            <td><span class="req req-no">no</span></td>
+            <td>free-text</td>
+            <td>Tool used (claude-code, copilot...)</td>
+          </tr>
+          <tr>
+            <td><code>AI-Provenance-Reviewed</code></td>
+            <td><span class="req req-yes">yes</span></td>
+            <td><code>true</code> <code>false</code> <code>partial</code></td>
+            <td>Human review status</td>
+          </tr>
+          <tr>
+            <td><code>AI-Provenance-Tested</code></td>
+            <td><span class="req req-no">no</span></td>
+            <td><code>true</code> <code>false</code> <code>partial</code></td>
+            <td>Human test status</td>
+          </tr>
+          <tr>
+            <td><code>AI-Provenance-Confidence</code></td>
+            <td><span class="req req-no">no</span></td>
+            <td><code>high</code> <code>medium</code> <code>low</code></td>
+            <td>Reviewer confidence</td>
+          </tr>
+          <tr>
+            <td><code>AI-Provenance-Notes</code></td>
+            <td><span class="req req-no">no</span></td>
+            <td>free-text</td>
+            <td>Any context</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- COMMENT STYLES -->
+<section id="languages">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Languages</span>
+      <h2 class="section-title">30+ file types supported.</h2>
+    </div>
+    <div class="lang-grid reveal">
+      <div class="lang-card">
+        <div class="prefix">//</div>
+        <div class="langs">JS, TS, JSX, TSX, Java, C, C++, C#, Go, Rust, Swift, Kotlin, Scala, Dart, PHP, Groovy</div>
+      </div>
+      <div class="lang-card">
+        <div class="prefix">#</div>
+        <div class="langs">Python, Ruby, Shell, YAML, TOML, Perl, R, PowerShell, Dockerfile, Terraform, Elixir, Julia</div>
+      </div>
+      <div class="lang-card">
+        <div class="prefix">&lt;!--</div>
+        <div class="langs">HTML, XML, SVG, Vue, Svelte, Markdown</div>
+      </div>
+      <div class="lang-card">
+        <div class="prefix">/* */</div>
+        <div class="langs">CSS, SCSS, Less</div>
+      </div>
+      <div class="lang-card">
+        <div class="prefix">--</div>
+        <div class="langs">SQL, Lua, Haskell, Elm</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BADGE -->
+<section id="badge">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Badge</span>
+      <h2 class="section-title">Show your review coverage.</h2>
+    </div>
+    <div class="badge-grid reveal">
+      <div class="badge-card">
+        <img src="https://img.shields.io/badge/human--reviewed-12%25%20of%20AI%20files-red" alt="12% badge" style="height:20px">
+        <div class="pct pct-red" style="margin-top:12px">12%</div>
+        <div class="label">< 25% - needs review</div>
+      </div>
+      <div class="badge-card">
+        <img src="https://img.shields.io/badge/human--reviewed-48%25%20of%20AI%20files-yellow" alt="48% badge" style="height:20px">
+        <div class="pct pct-yellow" style="margin-top:12px">48%</div>
+        <div class="label">25-74% - in progress</div>
+      </div>
+      <div class="badge-card">
+        <img src="https://img.shields.io/badge/human--reviewed-82%25%20of%20AI%20files-green" alt="82% badge" style="height:20px">
+        <div class="pct pct-green" style="margin-top:12px">82%</div>
+        <div class="label">75-99% - mostly reviewed</div>
+      </div>
+      <div class="badge-card">
+        <img src="https://img.shields.io/badge/human--reviewed-100%25%20of%20AI%20files-brightgreen" alt="100% badge" style="height:20px">
+        <div class="pct pct-bright" style="margin-top:12px">100%</div>
+        <div class="label">100% - fully reviewed</div>
+      </div>
+    </div>
+    <div class="terminal reveal" style="margin-top:32px">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span>terminal</span>
+      </div>
+      <div class="terminal-body">
+<pre><span class="prompt">$</span> <span class="cmd">humancov scan --badge</span>
+
+<span class="hl-dim">https://img.shields.io/badge/human--reviewed-75%25%20of%20AI%20files-green</span>
+
+<span class="hl-dim">![Human Reviewed](https://img.shields.io/badge/human--reviewed-75%25...)</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CI -->
+<section id="ci">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">CI</span>
+      <h2 class="section-title">Enforce in your pipeline.</h2>
+    </div>
+    <div class="ci-block reveal">
+<pre><span class="hl-comment"># .github/workflows/provenance.yml</span>
+<span class="hl-key">name:</span> <span class="hl-str">AI Review Check</span>
+<span class="hl-key">on:</span> <span class="hl-str">[push, pull_request]</span>
+<span class="hl-key">jobs:</span>
+  <span class="hl-key">check:</span>
+    <span class="hl-key">runs-on:</span> <span class="hl-str">ubuntu-latest</span>
+    <span class="hl-key">steps:</span>
+      - <span class="hl-key">uses:</span> <span class="hl-str">actions/checkout@v4</span>
+      - <span class="hl-key">uses:</span> <span class="hl-str">actions/setup-node@v4</span>
+      - <span class="hl-key">run:</span> <span class="hl-str">npx humancov scan --check 80</span></pre>
+    </div>
+    <p style="margin-top:16px;font-size:13px;color:var(--text-dim)" class="reveal">
+      Fails your build if not enough AI code has been human-reviewed.
+    </p>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section id="commands">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">CLI</span>
+      <h2 class="section-title">All commands.</h2>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span>terminal</span>
+      </div>
+      <div class="terminal-body">
+<pre><span class="prompt">$</span> <span class="cmd">humancov scan</span>            <span class="hl-dim"># scan repo, print report</span>
+<span class="prompt">$</span> <span class="cmd">humancov scan --json</span>     <span class="hl-dim"># output as JSON</span>
+<span class="prompt">$</span> <span class="cmd">humancov scan --badge</span>    <span class="hl-dim"># shields.io badge URL</span>
+<span class="prompt">$</span> <span class="cmd">humancov scan --check 80</span> <span class="hl-dim"># CI gate: fail if &lt; 80%</span>
+<span class="prompt">$</span> <span class="cmd">humancov manifest</span>        <span class="hl-dim"># generate .humancov file</span>
+<span class="prompt">$</span> <span class="cmd">humancov init</span>            <span class="hl-dim"># add instructions to AI tool configs</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <p style="margin-bottom:8px;font-size:14px;color:var(--text)">humancov</p>
+    <p>CC0 1.0 - public domain. Use it, fork it, extend it.</p>
+    <p style="margin-top:8px"><a href="https://github.com/enixcode/humancov">GitHub</a></p>
+  </div>
+</footer>
+
+<script>
+// Fetch latest version from GitHub
+fetch('https://api.github.com/repos/enixcode/humancov/releases/latest')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(d => document.getElementById('version').textContent = d.tag_name)
+  .catch(() => {
+    fetch('https://api.github.com/repos/enixcode/humancov/tags')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(tags => {
+        if (tags.length) document.getElementById('version').textContent = tags[0].name;
+        else document.getElementById('version').textContent = 'v0.1.0';
+      })
+      .catch(() => document.getElementById('version').textContent = 'v0.1.0');
+  });
+
+// Random tagline - one per visit
+const taglines = [
+  "AI writes your code. You review it. Your boss thinks you wrote it. At least keep receipts.",
+  "In a world where machines write code and humans pretend they understand it, transparency is the least we can do.",
+  "The code writes itself now. The bugs are still yours. Track who did what.",
+  "We taught machines to code. Now we need proof that someone actually read what they wrote.",
+  "AI writes code faster than you can review it. That's the problem. This is the start of the fix.",
+];
+document.getElementById('tagline').textContent =
+  taglines[Math.floor(Math.random() * taglines.length)];
+
+// Copy install command
+function copyInstall(el) {
+  navigator.clipboard.writeText('npm install -g humancov');
+  const hint = el.querySelector('.copy-hint');
+  hint.textContent = 'copied!';
+  setTimeout(() => hint.textContent = 'click to copy', 1500);
+}
+
+// Copy inline terminal command
+function copyCmd(el, cmd) {
+  navigator.clipboard.writeText(cmd);
+  const hint = el.querySelector('.it-copy');
+  hint.textContent = 'copied!';
+  setTimeout(() => hint.textContent = 'click to copy', 1500);
+}
+
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.15 });
+reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

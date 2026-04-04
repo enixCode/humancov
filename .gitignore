@@ -1,0 +1,10 @@
+node_modules/
+*.png
+*.tgz
+.playwright-mcp/
+.env
+.env.local
+.DS_Store
+.bench-tmp/
+.claude/
+.test-tmp-*/
