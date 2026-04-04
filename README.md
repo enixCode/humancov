@@ -50,15 +50,15 @@ humancov scan
 ```
 AI-Provenance Scan
 ==================
-Total files scanned:  14
-AI-generated:         8
+Total files scanned:  22
+AI-generated:         18
 Human-written:        0
 Mixed:                0
-Unknown (no header):  6
+Unknown (no header):  4
 
 Of AI files:
-  Reviewed:  0 / 8  (0%)
-  Tested:    0 / 8  (0%)
+  Reviewed:  3 / 18  (17%)
+  Tested:    5 / 18  (28%)
 ```
 
 **3. When you review a file**, update the header:
@@ -185,6 +185,53 @@ Add to your pipeline to enforce a review threshold:
 ```
 
 Exits with code 1 if the reviewed percentage is below the threshold.
+
+---
+
+## Pre-commit Hook
+
+A pre-commit hook keeps the badge and `.humancov` manifest up to date automatically on every commit.
+
+**Option A - via `humancov init`:**
+
+Run `humancov init` and your AI tool will propose installing the hook for you.
+
+**Option B - manual setup:**
+
+Create `.git/hooks/pre-commit` with this content:
+
+```sh
+#!/bin/sh
+
+# humancov - auto-update badge and manifest before each commit
+npx humancov manifest 2>/dev/null
+if [ -f ".humancov" ]; then
+  git add .humancov
+fi
+
+BADGE_URL=$(npx humancov scan --badge 2>/dev/null | head -1)
+if [ -n "$BADGE_URL" ] && [ -f "README.md" ]; then
+  node -e "
+    const fs = require('fs');
+    const url = process.argv[1];
+    const readme = fs.readFileSync('README.md', 'utf8');
+    const updated = readme.replace(
+      /!\[Human Reviewed\]\(https:\/\/img\.shields\.io\/badge\/human--reviewed-[^)]*\)/,
+      '![Human Reviewed](' + url + ')'
+    );
+    if (updated !== readme) { fs.writeFileSync('README.md', updated); }
+  " "\$BADGE_URL"
+  git add README.md
+fi
+```
+
+Then make it executable:
+
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+> **Note:** `.git/hooks/` is local and not shared via git. Each contributor needs to set up the hook on their machine. If your team uses [husky](https://typicode.github.io/husky/) or a similar tool, add the hook content to your shared hooks directory instead.
 
 ---
 

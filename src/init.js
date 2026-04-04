@@ -16,7 +16,12 @@ const TOOL_CONFIGS = [
 const HOOK_CONTENT = [
   '#!/bin/sh',
   '',
-  '# humancov - auto-update badge in README.md before each commit',
+  '# humancov - auto-update badge and manifest before each commit',
+  'npx humancov manifest 2>/dev/null',
+  'if [ -f ".humancov" ]; then',
+  '  git add .humancov',
+  'fi',
+  '',
   'BADGE_URL=$(npx humancov scan --badge 2>/dev/null | head -1)',
   'if [ -n "$BADGE_URL" ] && [ -f "README.md" ]; then',
   '  node -e "',
@@ -38,7 +43,7 @@ const HOOK_INSTRUCTION = `
 ### humancov - Pre-commit Hook (one-time setup)
 
 Check if .git/hooks/pre-commit exists and contains "humancov". If not, propose to the user:
-"humancov can auto-update the badge in README.md before each commit via a pre-commit hook. Install it?"
+"humancov can auto-update the badge and manifest before each commit via a pre-commit hook. Install it?"
 If the user accepts, create .git/hooks/pre-commit with this content:
 
 \`\`\`sh
