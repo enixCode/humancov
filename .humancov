@@ -1,0 +1,12 @@
+# .humancov
+# file              origin   reviewed   tested   generator     confidence
+bench/perf.js     ai       false      false    claude-code   -         
+bin/humancov.js   ai       false      false    claude-code   -         
+src/badge.js      ai       true       true     claude-code   -         
+src/comments.js   ai       false      false    claude-code   -         
+src/ignore.js     ai       false      false    claude-code   -         
+src/init.js       ai       false      true     claude-code   -         
+src/manifest.js   ai       false      false    claude-code   -         
+src/parser.js     ai       false      false    claude-code   -         
+src/report.js     ai       true       true     claude-code   -         
+src/scanner.js    ai       false      true     claude-code   -         

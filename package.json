@@ -1,0 +1,42 @@
+{
+  "name": "humancov",
+  "version": "1.0.0",
+  "description": "CLI tool for tracking AI-generated vs human-written code provenance",
+  "type": "module",
+  "bin": {
+    "humancov": "./bin/humancov.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enixCode/humancov"
+  },
+  "homepage": "https://github.com/enixCode/humancov#readme",
+  "scripts": {
+    "test": "node --test test/badge.test.js test/cli.test.js test/comments.test.js test/ignore.test.js test/manifest.test.js test/parser.test.js test/report.test.js test/scanner.test.js",
+    "ci": "act push --matrix os:ubuntu-latest",
+    "bench": "node bench/perf.js"
+  },
+  "dependencies": {
+    "ignore": "^7.0.5"
+  },
+  "keywords": [
+    "ai",
+    "provenance",
+    "code-review",
+    "cli",
+    "code-quality",
+    "transparency"
+  ],
+  "license": "CC0-1.0",
+  "publishConfig": {
+    "access": "public"
+  }
+}
