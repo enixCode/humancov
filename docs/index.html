@@ -783,9 +783,9 @@ fetch('https://api.github.com/repos/enixcode/humancov/releases/latest')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(tags => {
         if (tags.length) document.getElementById('version').textContent = tags[0].name;
-        else document.getElementById('version').textContent = 'v0.1.0';
+        else document.getElementById('version').textContent = 'v1.0.0';
       })
-      .catch(() => document.getElementById('version').textContent = 'v0.1.0');
+      .catch(() => document.getElementById('version').textContent = 'v1.0.0');
   });
 
 // Random tagline - one per visit

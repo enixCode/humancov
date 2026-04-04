@@ -14,13 +14,18 @@
   "engines": {
     "node": ">=18"
   },
+  "author": "enixCode",
   "repository": {
     "type": "git",
-    "url": "https://github.com/enixCode/humancov"
+    "url": "git+https://github.com/enixCode/humancov.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enixCode/humancov/issues"
   },
   "homepage": "https://github.com/enixCode/humancov#readme",
   "scripts": {
     "test": "node --test test/badge.test.js test/cli.test.js test/comments.test.js test/ignore.test.js test/manifest.test.js test/parser.test.js test/report.test.js test/scanner.test.js",
+    "prepublishOnly": "npm test",
     "ci": "act push --matrix os:ubuntu-latest",
     "bench": "node bench/perf.js"
   },

@@ -81,6 +81,7 @@ Of AI files:
 | `humancov scan --check <N>` | Exit 1 if reviewed% < N (for CI) |
 | `humancov manifest` | Generate `.humancov` manifest file |
 | `humancov init` | Add AI-Provenance instructions to AI tool configs |
+| `humancov --version` | Print version |
 
 ---
 
@@ -152,7 +153,7 @@ dist/
 coverage/
 ```
 
-Default ignores: `node_modules/`, `.git/`, `.humancov`, `.humancov-ignore`, `*.md`, `*.lock`, `LICENSE`, `.gitignore`, `.github/`, `.playwright-mcp/`.
+Default ignores: `node_modules/`, `.git/`, `.humancov`, `.humancov-ignore`, `*.md`, `*.lock`, `LICENSE`, `.gitignore`, `.github/`.
 
 ---
 
@@ -253,7 +254,7 @@ Scales near-linearly. The main cost is `git ls-files` + file I/O in the scanner 
 
 ## Spec
 
-See [CLAUDE.md](CLAUDE.md) for the full AI-Provenance Spec v0.1.
+See the [AI-Provenance Spec v0.1](https://github.com/enixCode/humancov/blob/main/CLAUDE.md) for the full specification.
 
 ---
 

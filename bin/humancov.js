@@ -5,14 +5,19 @@
 // AI-Provenance-Tested: true
 
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { scanFiles } from '../src/scanner.js';
 import { printReport, jsonReport } from '../src/report.js';
 import { generateBadgeUrl } from '../src/badge.js';
 import { generateManifest } from '../src/manifest.js';
 import { runInit } from '../src/init.js';
 
+const __dirname = resolve(fileURLToPath(import.meta.url), '..');
+const pkg = JSON.parse(readFileSync(resolve(__dirname, '..', 'package.json'), 'utf8'));
+
 const USAGE = `
-humancov - Track AI-generated vs human-written code
+humancov v${pkg.version} - Track AI-generated vs human-written code
 
 Usage:
   humancov scan                Scan repo and print report
@@ -35,6 +40,11 @@ const rootDir = resolve('.');
 
 if (!command || command === '--help' || command === '-h') {
   console.log(USAGE);
+  process.exit(0);
+}
+
+if (command === '--version' || command === '-v') {
+  console.log(pkg.version);
   process.exit(0);
 }
 

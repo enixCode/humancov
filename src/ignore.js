@@ -17,7 +17,6 @@ const DEFAULTS = [
   'LICENSE',
   '.gitignore',
   '.github/',
-  '.playwright-mcp/',
 ];
 
 export function loadIgnore(rootDir) {
