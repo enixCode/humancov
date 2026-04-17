@@ -65,4 +65,27 @@ describe('loadIgnore', () => {
     assert.ok(!ig.ignores('src/app.js'));
     cleanup();
   });
+
+  it('loads .gitignore patterns automatically', () => {
+    setup();
+    writeFileSync(join(TMP, '.gitignore'), 'build/\n*.log\nsecret.txt\n', 'utf8');
+    const ig = loadIgnore(TMP);
+    assert.ok(ig.ignores('build/output.js'));
+    assert.ok(ig.ignores('debug.log'));
+    assert.ok(ig.ignores('secret.txt'));
+    // defaults still apply
+    assert.ok(ig.ignores('node_modules/foo.js'));
+    cleanup();
+  });
+
+  it('combines .gitignore and .humancov-ignore', () => {
+    setup();
+    writeFileSync(join(TMP, '.gitignore'), 'build/\n', 'utf8');
+    writeFileSync(join(TMP, '.humancov-ignore'), 'vendor/\n', 'utf8');
+    const ig = loadIgnore(TMP);
+    assert.ok(ig.ignores('build/x.js'));
+    assert.ok(ig.ignores('vendor/x.js'));
+    assert.ok(!ig.ignores('src/app.js'));
+    cleanup();
+  });
 });

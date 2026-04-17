@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/badge/license-CC0--1.0-brightgreen)](https://creativecommons.org/publicdomain/zero/1.0/)
 [![node](https://img.shields.io/node/v/humancov)](https://nodejs.org/)
 [![GitHub](https://img.shields.io/github/stars/enixCode/humancov?style=social)](https://github.com/enixCode/humancov)
-![Human Reviewed](https://img.shields.io/badge/human--reviewed-17%25%20of%20AI%20files-red)
+![Human Reviewed](https://img.shields.io/badge/human--reviewed-16%25%20of%20AI%20files-red)
 
 A lightweight CLI that tracks AI-generated vs human-written code in your repo.
 
@@ -15,18 +15,38 @@ Add provenance headers to your files, scan, and know exactly what's been human-r
 
 ## Install
 
-```bash
-npm install -g humancov
-```
-
-Or locally:
+Install as a dev dependency in your project:
 
 ```bash
-npm install humancov
+npm install --save-dev humancov
 npx humancov scan
 ```
 
 Requires **Node >= 18**.
+
+---
+
+## AI Tool Setup
+
+Run `humancov init` **first** - it teaches your AI coding tool to tag every file it generates with provenance headers automatically.
+
+```bash
+humancov init
+```
+
+It detects existing config files (or rule directories) and appends the instructions block. If a modern rules directory exists, a dedicated rule file is created instead.
+
+| Tool | Config file |
+|---|---|
+| Claude Code | `CLAUDE.md` |
+| AGENTS.md (cross-tool) | `AGENTS.md` |
+| Cursor (legacy) | `.cursorrules` |
+| Cursor (rules dir) | `.cursor/rules/humancov.mdc` |
+| Windsurf (legacy) | `.windsurfrules` |
+| Windsurf (rules dir) | `.windsurf/rules/humancov.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+
+If the file already contains AI-Provenance instructions, it skips it. If no config files are found, it lists the supported files.
 
 ---
 
@@ -83,67 +103,56 @@ Of AI files:
 | `humancov init` | Add AI-Provenance instructions to AI tool configs |
 | `humancov --version` | Print version |
 
----
+### Examples
 
-## AI Tool Setup
+**`--json`** - per-file provenance data:
 
-Use `humancov init` to automatically add provenance instructions to your AI coding tool configs.
-
-It detects existing config files and appends the instructions block:
-
-| Tool | Config file |
-|---|---|
-| Claude Code | `CLAUDE.md` |
-| Cursor | `.cursorrules` |
-| Windsurf | `.windsurfrules` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-
-```bash
-humancov init
+```json
+{
+  "files": [
+    { "file": "src/scanner.js", "origin": "ai", "generator": "claude-code", "reviewed": "false", ... },
+    { "file": "lib/utils.py", "origin": "human", "reviewed": "true", ... }
+  ],
+  "summary": { "total": 22, "ai": 18, "human": 0, "mixed": 0, "unknown": 4, "reviewed": 3, "tested": 5 }
+}
 ```
 
-If the file already contains AI-Provenance instructions, it skips it. If no config files are found, it lists the supported files.
+**`--badge`** - shields.io URL + markdown snippet:
+
+```
+https://img.shields.io/badge/human--reviewed-17%25%20of%20AI%20files-red
+![Human Reviewed](https://img.shields.io/badge/human--reviewed-17%25%20of%20AI%20files-red)
+```
+
+**`--check 80`** - CI gate (exits 1 on failure):
+
+```
+Reviewed: 17% (threshold: 80%)
+FAIL: 17% < 80%
+```
 
 ---
 
 ## Header Keys
 
-Headers use the prefix `AI-Provenance-` in a comment at the top of the file.
+Add `AI-Provenance-` headers in a comment block at the top of any file (first 20 lines). Use your language's comment syntax (`//`, `#`, `<!--`, `/*`, `--`).
 
-| Key | Required | Values | Description |
-|---|---|---|---|
-| `Origin` | yes | `ai`, `human`, `mixed` | Who wrote the file |
-| `Generator` | no | free-text | Tool used (`claude-code`, `copilot`, `codex`...) |
-| `Reviewed` | yes | `true`, `false`, `partial` | Human review status |
-| `Tested` | no | `true`, `false`, `partial` | Human test status |
-| `Confidence` | no | `high`, `medium`, `low` | Reviewer confidence |
-| `Notes` | no | free-text | Any context |
-
-### Comment styles
-
-Headers adapt to the file's language:
-
-```javascript
-// AI-Provenance-Origin: ai          // JS, TS, Java, Go, Rust, C...
-```
-```python
-# AI-Provenance-Origin: ai           # Python, Ruby, Shell, YAML...
-```
-```html
-<!-- AI-Provenance-Origin: ai -->     <!-- HTML, XML, SVG, Vue, Markdown -->
-```
-```css
-/* AI-Provenance-Origin: ai */        /* CSS, SCSS, Less */
-```
-```sql
--- AI-Provenance-Origin: ai           -- SQL, Lua
-```
+| Key | Required | Values |
+|---|---|---|
+| `Origin` | yes | `ai`, `human`, `mixed` |
+| `Generator` | no | tool name (`claude-code`, `copilot`, `codex`...) |
+| `Reviewed` | yes | `true`, `false`, `partial` |
+| `Tested` | no | `true`, `false`, `partial` |
+| `Confidence` | no | `high`, `medium`, `low` |
+| `Notes` | no | free-text |
 
 ---
 
 ## Ignore Files
 
-Create `.humancov-ignore` at repo root (gitignore syntax) to exclude files from scanning:
+humancov automatically respects your **`.gitignore`** - no extra setup needed. Anything ignored by git is ignored by humancov.
+
+For humancov-specific ignores on top of `.gitignore`, create `.humancov-ignore` at repo root (same gitignore syntax):
 
 ```gitignore
 *.md
@@ -153,7 +162,9 @@ dist/
 coverage/
 ```
 
-Default ignores: `node_modules/`, `.git/`, `.humancov`, `.humancov-ignore`, `*.md`, `*.lock`, `LICENSE`, `.gitignore`, `.github/`.
+**Resolution order:** built-in defaults → `.gitignore` → `.humancov-ignore`.
+
+Built-in defaults: `node_modules/`, `.git/`, `.humancov`, `.humancov-ignore`, `*.md`, `*.lock`, `LICENSE`, `.gitignore`, `.github/`.
 
 ---
 
@@ -192,11 +203,10 @@ Exits with code 1 if the reviewed percentage is below the threshold.
 
 A pre-commit hook keeps the badge and `.humancov` manifest up to date automatically on every commit.
 
-**Option A - via `humancov init`:**
-
 Run `humancov init` and your AI tool will propose installing the hook for you.
 
-**Option B - manual setup:**
+<details>
+<summary>Manual setup</summary>
 
 Create `.git/hooks/pre-commit` with this content:
 
@@ -232,6 +242,8 @@ chmod +x .git/hooks/pre-commit
 ```
 
 > **Note:** `.git/hooks/` is local and not shared via git. Each contributor needs to set up the hook on their machine. If your team uses [husky](https://typicode.github.io/husky/) or a similar tool, add the hook content to your shared hooks directory instead.
+
+</details>
 
 ---
 
@@ -272,30 +284,6 @@ For each file:
      v
 Aggregate stats and output report
 ```
-
----
-
-## Performance
-
-Benchmarked on a standard machine with Node >= 18. Run `node bench/perf.js` to reproduce.
-
-| Operation | Scope | Avg |
-|---|---|---|
-| Comment prefix lookup | 10,000 lookups | ~12ms |
-| Ignore pattern loading | single load | ~0.1ms |
-| Badge URL generation | 1,000 generations | ~0.1ms |
-| Header parsing | 7 files | ~3ms |
-| Full repo scan | 8 tracked files | ~90ms |
-
-**Scaling (scanFiles):**
-
-| Files | Avg | Min | Max |
-|---|---|---|---|
-| 100 | ~120ms | ~80ms | ~220ms |
-| 500 | ~175ms | ~145ms | ~295ms |
-| 1,000 | ~265ms | ~220ms | ~340ms |
-
-Scales near-linearly. The main cost is `git ls-files` + file I/O in the scanner - utility modules add negligible overhead.
 
 ---
 

@@ -497,7 +497,7 @@ Of AI files:
       <h2 class="section-title">Teach your AI to tag its code.</h2>
     </div>
     <div class="flow-content reveal" style="margin-bottom:32px">
-      <p>Run <code>humancov init</code> to detect your AI tool config files and inject provenance instructions automatically.</p>
+      <p>Run <code>humancov init</code> to detect your AI tool config files (or modern rule directories) and inject provenance instructions automatically.</p>
     </div>
     <div class="tool-grid reveal">
       <div class="tool-card">
@@ -511,10 +511,19 @@ Of AI files:
       </div>
       <div class="tool-card">
         <div class="tool-icon">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#c4f06e" stroke-width="1.2"/><path d="M8 10h8M8 14h5" stroke="#c4f06e" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tool-info">
+          <div class="tool-file">AGENTS.md</div>
+          <div class="tool-name">Cross-tool standard</div>
+        </div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon">
           <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="#7a7872" stroke-width="1.2"/><path d="M8 8h8M8 12h5M8 16h6" stroke="#7a7872" stroke-width="1.2" stroke-linecap="round"/><circle cx="17" cy="15" r="3" fill="#5b8def" opacity=".8"/></svg>
         </div>
         <div class="tool-info">
-          <div class="tool-file">.cursorrules</div>
+          <div class="tool-file">.cursorrules <span style="color:var(--text-dim);font-weight:400">/ .cursor/rules/</span></div>
           <div class="tool-name">Cursor</div>
         </div>
       </div>
@@ -523,7 +532,7 @@ Of AI files:
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L3 8v8l9 5 9-5V8l-9-5z" stroke="#4ecf73" stroke-width="1.2" stroke-linejoin="round"/><path d="M3 8l9 5m0 0l9-5m-9 5v9" stroke="#4ecf73" stroke-width="1.2" stroke-linejoin="round"/></svg>
         </div>
         <div class="tool-info">
-          <div class="tool-file">.windsurfrules</div>
+          <div class="tool-file">.windsurfrules <span style="color:var(--text-dim);font-weight:400">/ .windsurf/rules/</span></div>
           <div class="tool-name">Windsurf</div>
         </div>
       </div>
@@ -548,10 +557,11 @@ Of AI files:
 <pre><span class="prompt">$</span> <span class="cmd">humancov init</span>
 
   <span class="hl-green">done</span>: CLAUDE.md <span class="hl-dim">(Claude Code instructions added)</span>
-  <span class="hl-green">done</span>: .cursorrules <span class="hl-dim">(Cursor instructions added)</span>
+  <span class="hl-green">done</span>: AGENTS.md <span class="hl-dim">(cross-tool instructions added)</span>
+  <span class="hl-green">done</span>: .cursor/rules/humancov.mdc <span class="hl-dim">(Cursor rule file created)</span>
   <span class="hl-dim">skip</span>: .windsurfrules <span class="hl-dim">(already has AI-Provenance instructions)</span>
 
-<span class="val">2 file(s) updated.</span></pre>
+<span class="val">3 file(s) updated.</span></pre>
       </div>
     </div>
   </div>
@@ -565,12 +575,52 @@ Of AI files:
       <h2 class="section-title">Ready in seconds.</h2>
     </div>
     <div class="install-box reveal" onclick="copyInstall(this)" title="Click to copy">
-      <code>npm install -g humancov</code>
+      <code>npm install --save-dev humancov</code>
       <span class="copy-hint">click to copy</span>
     </div>
     <p style="margin-top:16px;font-size:13px;color:var(--text-dim)" class="reveal">
-      Requires Node >= 18. Zero config. Single dependency.
+      Install as a dev dependency. Requires Node >= 18. Zero config. Single dependency.
     </p>
+  </div>
+</section>
+
+<!-- PRE-COMMIT HOOK -->
+<section id="hook">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Automation</span>
+      <h2 class="section-title">Pre-commit hook.</h2>
+    </div>
+    <div class="flow-content reveal" style="margin-bottom:24px">
+      <p>A local git hook that <strong>auto-updates the badge and <code>.humancov</code> manifest</strong> before every commit. Zero manual work to keep your README and manifest in sync.</p>
+    </div>
+    <div class="flow reveal">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <h3>Runs on every <code>git commit</code></h3>
+          <p>Regenerates <code>.humancov</code> from your file headers and stages it.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <h3>Updates the README badge</h3>
+          <p>Replaces the <code>human-reviewed</code> shields.io URL with the fresh percentage.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <h3>Stages the changes</h3>
+          <p>Both <code>.humancov</code> and <code>README.md</code> updates land in the same commit.</p>
+        </div>
+      </div>
+    </div>
+    <div class="flow-content reveal" style="margin-top:24px">
+      <p>Run <code>humancov init</code> and your AI tool will propose installing the hook for you. Manual setup: create <code>.git/hooks/pre-commit</code>, paste the snippet from the README, and <code>chmod +x</code> it.</p>
+      <p style="margin-top:12px;font-size:12px;color:var(--text-dim)">Note: <code>.git/hooks/</code> is local and not shared via git. Each contributor installs it once on their machine (or uses husky to share it).</p>
+    </div>
   </div>
 </section>
 
@@ -666,6 +716,39 @@ Of AI files:
   </div>
 </section>
 
+<!-- IGNORE -->
+<section id="ignore">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Ignore</span>
+      <h2 class="section-title">Skip files from scans.</h2>
+    </div>
+    <div class="flow-content reveal" style="margin-bottom:24px">
+      <p>humancov <strong>auto-respects your <code>.gitignore</code></strong> - zero setup. For humancov-specific exclusions on top, create <code>.humancov-ignore</code> at the repo root (<strong>same gitignore syntax</strong>).</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--text-dim)">Resolution order: built-in defaults → <code>.gitignore</code> → <code>.humancov-ignore</code>.</p>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span>.humancov-ignore</span>
+      </div>
+      <div class="terminal-body">
+<pre><span class="hl-dim"># exclude docs, lockfiles, build output</span>
+<span class="val">*.md</span>
+<span class="val">LICENSE</span>
+<span class="val">*.lock</span>
+<span class="val">dist/</span>
+<span class="val">coverage/</span></pre>
+      </div>
+    </div>
+    <p style="margin-top:16px;font-size:13px;color:var(--text-dim)" class="reveal">
+      Default ignores: <code>node_modules/</code>, <code>.git/</code>, <code>.humancov</code>, <code>.humancov-ignore</code>, <code>*.md</code>, <code>*.lock</code>, <code>LICENSE</code>, <code>.gitignore</code>, <code>.github/</code>.
+    </p>
+  </div>
+</section>
+
 <!-- BADGE -->
 <section id="badge">
   <div class="container">
@@ -738,6 +821,34 @@ Of AI files:
   </div>
 </section>
 
+<!-- MANIFEST -->
+<section id="manifest">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-label">Manifest</span>
+      <h2 class="section-title">The <code style="font-family:var(--mono);font-size:.8em">.humancov</code> file.</h2>
+    </div>
+    <div class="flow-content reveal" style="margin-bottom:24px">
+      <p><code>humancov manifest</code> generates a <strong>TSV summary</strong> of all files with provenance headers. File headers are the source of truth - if both exist and conflict, <strong>headers win</strong>.</p>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span>.humancov</span>
+      </div>
+      <div class="terminal-body">
+<pre><span class="hl-dim"># .humancov</span>
+<span class="hl-dim"># file              origin   reviewed   tested   generator     confidence</span>
+<span class="val">src/scanner.js</span>      <span class="hl-ai">ai</span>       <span class="hl-green">true</span>       <span class="hl-red">false</span>    <span class="val">claude-code</span>   <span class="hl-green">high</span>
+<span class="val">src/parser.js</span>       <span class="hl-ai">ai</span>       <span class="hl-red">false</span>      <span class="hl-red">false</span>    <span class="val">claude-code</span>   -
+<span class="val">lib/utils.py</span>        <span class="hl-human">human</span>    <span class="hl-green">true</span>       <span class="hl-green">true</span>     -             -</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- COMMANDS -->
 <section id="commands">
   <div class="container">
@@ -758,7 +869,8 @@ Of AI files:
 <span class="prompt">$</span> <span class="cmd">humancov scan --badge</span>    <span class="hl-dim"># shields.io badge URL</span>
 <span class="prompt">$</span> <span class="cmd">humancov scan --check 80</span> <span class="hl-dim"># CI gate: fail if &lt; 80%</span>
 <span class="prompt">$</span> <span class="cmd">humancov manifest</span>        <span class="hl-dim"># generate .humancov file</span>
-<span class="prompt">$</span> <span class="cmd">humancov init</span>            <span class="hl-dim"># add instructions to AI tool configs</span></pre>
+<span class="prompt">$</span> <span class="cmd">humancov init</span>            <span class="hl-dim"># add instructions to AI tool configs</span>
+<span class="prompt">$</span> <span class="cmd">humancov --version</span>       <span class="hl-dim"># print version</span></pre>
       </div>
     </div>
   </div>
@@ -800,7 +912,7 @@ document.getElementById('tagline').textContent =
 
 // Copy install command
 function copyInstall(el) {
-  navigator.clipboard.writeText('npm install -g humancov');
+  navigator.clipboard.writeText('npm install --save-dev humancov');
   const hint = el.querySelector('.copy-hint');
   hint.textContent = 'copied!';
   setTimeout(() => hint.textContent = 'click to copy', 1500);
