@@ -14,6 +14,7 @@ test/badge.test.js      ai       false      false    claude-code   -
 test/cli.test.js        ai       false      false    claude-code   -         
 test/comments.test.js   ai       false      false    claude-code   -         
 test/ignore.test.js     ai       false      false    claude-code   -         
+test/init.test.js       ai       false      false    claude-code   -         
 test/manifest.test.js   ai       false      false    claude-code   -         
 test/parser.test.js     ai       false      false    claude-code   -         
 test/report.test.js     ai       false      false    claude-code   -         

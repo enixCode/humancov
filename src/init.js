@@ -3,14 +3,17 @@
 // AI-Provenance-Reviewed: false
 // AI-Provenance-Tested: false
 
-import { existsSync, readFileSync, appendFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 
 const TOOL_CONFIGS = [
-  { file: 'CLAUDE.md', generator: 'claude-code', name: 'Claude Code' },
-  { file: '.cursorrules', generator: 'cursor', name: 'Cursor' },
-  { file: '.windsurfrules', generator: 'windsurf', name: 'Windsurf' },
-  { file: '.github/copilot-instructions.md', generator: 'copilot', name: 'GitHub Copilot' },
+  { file: 'CLAUDE.md', generator: 'claude-code', name: 'Claude Code', action: 'append' },
+  { file: 'AGENTS.md', generator: 'agents-md', name: 'AGENTS.md (cross-tool)', action: 'append' },
+  { file: '.cursorrules', generator: 'cursor', name: 'Cursor (legacy)', action: 'append' },
+  { file: '.cursor/rules/humancov.mdc', generator: 'cursor', name: 'Cursor (rules dir)', action: 'create-if-dir', dir: '.cursor/rules', format: 'mdc' },
+  { file: '.windsurfrules', generator: 'windsurf', name: 'Windsurf (legacy)', action: 'append' },
+  { file: '.windsurf/rules/humancov.md', generator: 'windsurf', name: 'Windsurf (rules dir)', action: 'create-if-dir', dir: '.windsurf/rules' },
+  { file: '.github/copilot-instructions.md', generator: 'copilot', name: 'GitHub Copilot', action: 'append' },
 ];
 
 const HOOK_CONTENT = [
@@ -78,24 +81,58 @@ ${HOOK_INSTRUCTION}
 `;
 }
 
+function buildMdcFile(generator) {
+  return `---
+description: humancov AI-Provenance headers
+alwaysApply: true
+---
+${buildInstructions(generator)}`;
+}
+
 export function runInit(rootDir) {
   let updated = 0;
 
-  for (const { file, generator, name } of TOOL_CONFIGS) {
+  for (const config of TOOL_CONFIGS) {
+    const { file, generator, name, action } = config;
     const filePath = join(rootDir, file);
 
-    if (!existsSync(filePath)) continue;
+    if (action === 'append') {
+      if (!existsSync(filePath)) continue;
 
-    const content = readFileSync(filePath, 'utf8');
+      const content = readFileSync(filePath, 'utf8');
+      if (content.includes('AI-Provenance-Origin')) {
+        console.log(`  skip: ${file} (already has AI-Provenance instructions)`);
+        continue;
+      }
 
-    if (content.includes('AI-Provenance-Origin')) {
-      console.log(`  skip: ${file} (already has AI-Provenance instructions)`);
+      appendFileSync(filePath, buildInstructions(generator));
+      console.log(`  done: ${file} (${name} instructions added)`);
+      updated++;
       continue;
     }
 
-    appendFileSync(filePath, buildInstructions(generator));
-    console.log(`  done: ${file} (${name} instructions added)`);
-    updated++;
+    if (action === 'create-if-dir') {
+      const dirPath = join(rootDir, config.dir);
+      if (!existsSync(dirPath)) continue;
+
+      if (existsSync(filePath)) {
+        const content = readFileSync(filePath, 'utf8');
+        if (content.includes('AI-Provenance-Origin')) {
+          console.log(`  skip: ${file} (already has AI-Provenance instructions)`);
+          continue;
+        }
+        appendFileSync(filePath, buildInstructions(generator));
+        console.log(`  done: ${file} (${name} instructions appended)`);
+        updated++;
+        continue;
+      }
+
+      mkdirSync(dirname(filePath), { recursive: true });
+      const body = config.format === 'mdc' ? buildMdcFile(generator) : buildInstructions(generator).trimStart();
+      writeFileSync(filePath, body);
+      console.log(`  done: ${file} (${name} file created)`);
+      updated++;
+    }
   }
 
   if (updated === 0) {

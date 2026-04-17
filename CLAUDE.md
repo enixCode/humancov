@@ -1,3 +1,76 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Build and Run
+
+```bash
+npm install                  # install deps (single dep: `ignore`)
+npm test                     # run all tests (node:test, no framework)
+node --test test/parser.test.js  # run a single test file
+node bench/perf.js           # run benchmarks
+npx humancov scan            # run the CLI locally
+npm run ci                   # run CI locally via `act` (requires act installed)
+```
+
+No build step - pure ESM (`"type": "module"` in package.json), runs directly with Node >= 18.
+
+## Architecture
+
+The CLI entry point is `bin/humancov.js` - a thin dispatcher that parses args and delegates to modules in `src/`:
+
+- `scanner.js` - core scan logic. Lists files via `git ls-files` (falls back to recursive walk), filters through ignore patterns, calls parser on each file, aggregates summary stats.
+- `parser.js` - reads first 20 lines of a file, extracts `AI-Provenance-*` headers using comment-syntax-aware parsing.
+- `comments.js` - maps file extensions to comment prefixes (`//`, `#`, `<!--`, `/*`, `--`). Also defines binary extension set (returns `null` for binaries).
+- `ignore.js` - loads `.humancov-ignore` plus built-in default patterns, returns an `ignore` instance for filtering.
+- `report.js` - formats scan results as human-readable text or JSON.
+- `badge.js` - generates shields.io badge URL from scan summary with color thresholds.
+- `manifest.js` - writes `.humancov` TSV manifest file from scan results.
+- `init.js` - appends AI-Provenance instructions to AI tool config files (CLAUDE.md, AGENTS.md, .cursorrules, .github/copilot-instructions.md). For modern rule directories (`.cursor/rules/`, `.windsurf/rules/`), it creates a dedicated `humancov.mdc` / `humancov.md` rule file.
+
+Tests in `test/` mirror `src/` 1:1 (e.g., `test/parser.test.js` tests `src/parser.js`). All tests use Node's built-in `node:test` and `node:assert`.
+
+## Key Design Decisions
+
+- Zero build, zero transpilation - ship raw ESM JS files.
+- Single runtime dependency (`ignore` for gitignore-pattern matching).
+- File headers are the source of truth - the `.humancov` manifest is derived from them.
+- Headers must appear in the first 20 lines, using the file's native comment syntax.
+- When both manifest and headers exist and conflict, headers win.
+- Version is read from `package.json` at runtime (no hardcoded version).
+
+## Pre-commit Hook
+
+The repo uses a local pre-commit hook that auto-updates the `.humancov` manifest and README badge. See README.md "Pre-commit Hook" section for setup.
+
+## Branching and workflow
+
+GitHub Flow - everything happens on `main`.
+
+| Branch/Ref | Purpose |
+|---|---|
+| `main` | Single source of truth. All PRs merge here. |
+| `feature/*`, `fix/*`, `docs/*`, `refactor/*`, `test/*` | Short-lived branches. Deleted after merge. |
+| tag `v*` | Release trigger (npm publish). |
+
+No long-lived `dev` branch. Work happens in short feature branches merged to `main` via PR (squash merge).
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b feature/xxx
+# work, commit freely (WIP commits are fine, they get squashed)
+git push origin feature/xxx
+gh pr create --base main --fill
+gh pr merge --squash --delete-branch
+git checkout main
+git pull origin main
+```
+
+Questions / proposals / bug reports go to GitHub Issues.
+
+---
+
 # AI-Provenance Spec v0.1
 
 A lightweight, machine-readable convention for tracking the origin, review status, and test status of files in repositories where AI-generated and human-written code coexist.
@@ -193,7 +266,9 @@ A pre-commit hook CAN warn if a new file with `Origin: ai` is added without the 
 
 ## 7. Ignored Files
 
-Files matching patterns in `.humancov-ignore` (same syntax as `.gitignore`) are excluded from scanning and badge calculation. Typical ignores:
+humancov automatically respects the project's `.gitignore` (if present). For extra humancov-specific exclusions, add patterns to `.humancov-ignore` at the repo root (same syntax as `.gitignore`).
+
+Resolution order: built-in defaults → `.gitignore` → `.humancov-ignore`.
 
 ```
 # .humancov-ignore

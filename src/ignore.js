@@ -19,15 +19,19 @@ const DEFAULTS = [
   '.github/',
 ];
 
+const IGNORE_FILES = ['.gitignore', '.humancov-ignore'];
+
 export function loadIgnore(rootDir) {
   const ig = ignore();
   ig.add(DEFAULTS);
 
-  try {
-    const content = readFileSync(join(rootDir, '.humancov-ignore'), 'utf8');
-    ig.add(content);
-  } catch {
-    // no ignore file - use defaults only
+  for (const file of IGNORE_FILES) {
+    try {
+      const content = readFileSync(join(rootDir, file), 'utf8');
+      ig.add(content);
+    } catch {
+      // file not present - skip
+    }
   }
 
   return ig;
